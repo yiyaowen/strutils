@@ -4,30 +4,36 @@
 #ifndef YIYAOWEN_STRUTILS_HPP
 #define YIYAOWEN_STRUTILS_HPP
 
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <string>
 #include <vector>
+
+#ifdef YIYAOWEN_WIN32
+#include <Windows.h>
+#endif
 
 namespace yiyaowen {
 
 struct strutils
 {
 #define FUNC_ALIAS constexpr static auto&
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
     static std::string upper(const std::string& str)
     {
         std::string uppercase = str;
         for (auto& c : uppercase) c = std::toupper(c);
         return uppercase;
     }
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
     static std::string lower(const std::string& str)
     {
         std::string lowercase = str;
         for (auto& c : lowercase) c = std::tolower(c);
         return lowercase;
     }
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T, typename T::value_type... ws>
     static T _trim(const T& str)
@@ -63,7 +69,7 @@ private:
 public:
     FUNC_ALIAS trim = _trim<std::string, ' ', '\t'>;
     FUNC_ALIAS wtrim = _trim<std::wstring, L' ', L'\t'>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T>
     static std::pair<T, T> _split_once(const T& str, typename T::value_type symbol)
@@ -78,7 +84,7 @@ private:
 public:
     FUNC_ALIAS split_once = _split_once<std::string>;
     FUNC_ALIAS wsplit_once = _split_once<std::wstring>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T>
     static std::vector<T> _split(const T& str, typename T::value_type separator)
@@ -95,7 +101,7 @@ private:
 public:
     FUNC_ALIAS split = _split<std::string>;
     FUNC_ALIAS wsplit = _split<std::wstring>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T>
     static T _join(const std::vector<T>& str_array, const T& joint_mark)
@@ -113,28 +119,59 @@ private:
 public:
     FUNC_ALIAS join = _join<std::string>;
     FUNC_ALIAS wjoin = _join<std::wstring>;
-//-------------------------------------------------------------------------------------------------
-#pragma warning(push)
-#pragma warning(disable : 4996)
-
-    static std::wstring str_to_wstr(const std::string& str)
-    {
-        size_t wstr_size = mbstowcs(nullptr, str.c_str(), 0);
-        std::wstring wstr(wstr_size, L' ');
-        mbstowcs(wstr.data(), str.c_str(), wstr_size);
-        return wstr;
-    }
-
+    //-------------------------------------------------------------------------------------------------
+#ifdef YIYAOWEN_WIN32
     static std::string wstr_to_str(const std::wstring& wstr)
     {
-        size_t str_size = wcstombs(nullptr, wstr.c_str(), 0);
+        size_t str_size = WideCharToMultiByte(
+            CP_UTF8, // code page
+            0, // flags
+            wstr.c_str(),
+            (int)wstr.size(),
+            nullptr,
+            0,
+            nullptr, // default char
+            nullptr); // used default char
+
         std::string str(str_size, ' ');
-        wcstombs(str.data(), wstr.c_str(), str_size);
+
+        WideCharToMultiByte(
+            CP_UTF8, // code page
+            0, // flags
+            wstr.c_str(),
+            (int)wstr.size(),
+            str.data(),
+            (int)str.size(),
+            nullptr, // default char
+            nullptr); // used default char
+
         return str;
     }
 
-#pragma warning(pop)
-//-------------------------------------------------------------------------------------------------
+    static std::wstring str_to_wstr(const std::string& str)
+    {
+        size_t wstr_size = MultiByteToWideChar(
+            CP_UTF8, // code page
+            0, // flags
+            str.data(),
+            (int)str.size(),
+            nullptr,
+            0);
+
+        std::wstring wstr(wstr_size, L' ');
+
+        MultiByteToWideChar(
+            CP_UTF8, // code page
+            0, // flags
+            str.data(),
+            (int)str.size(),
+            wstr.data(),
+            (int)wstr.size());
+
+        return wstr;
+    }
+#endif
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T, typename T::value_type... lims>
     static T _dir_from_path(const T& path)
@@ -149,7 +186,7 @@ private:
 public:
     FUNC_ALIAS dir_from_path = _dir_from_path<std::string, '/', '\\'>;
     FUNC_ALIAS wdir_from_path = _dir_from_path<std::wstring, L'/', L'\\'>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T, typename T::value_type... lims>
     static T _file_from_path(const T& path)
@@ -161,7 +198,7 @@ private:
 public:
     FUNC_ALIAS file_from_path = _file_from_path<std::string, '/', '\\'>;
     FUNC_ALIAS wfile_from_path = _file_from_path<std::wstring, L'/', L'\\'>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T, typename T::value_type... ds>
     static T _body_of_file(const T& file)
@@ -173,7 +210,7 @@ private:
 public:
     FUNC_ALIAS body_of_file = _body_of_file<std::string, '.'>;
     FUNC_ALIAS wbody_of_file = _body_of_file<std::wstring, L'.'>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T, typename T::value_type... ds>
     static T _suffix_of_file(const T& file)
@@ -188,7 +225,7 @@ private:
 public:
     FUNC_ALIAS suffix_of_file = _suffix_of_file<std::string, '.'>;
     FUNC_ALIAS wsuffix_of_file = _suffix_of_file<std::wstring, L'.'>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T>
     static T _merge_path(const T& dir, const T& file, typename T::value_type lim)
@@ -198,7 +235,7 @@ private:
 public:
     FUNC_ALIAS merge_path = _merge_path<std::string>;
     FUNC_ALIAS wmerge_path = _merge_path<std::wstring>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 private:
     template <typename T>
     static typename T::value_type* _ptr_from_str(const T& str)
@@ -212,7 +249,7 @@ private:
 public:
     FUNC_ALIAS ptr_from_str = _ptr_from_str<std::string>;
     FUNC_ALIAS wptr_from_wstr = _ptr_from_str<std::wstring>;
-//-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 #undef FUNC_ALIAS
 };
 
